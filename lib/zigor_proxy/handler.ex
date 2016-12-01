@@ -6,13 +6,17 @@ defmodule ZigorProxy.Handler do
 
   def handle_zigor_client(client) do
     {:ok, origin} = origin_chan_create
-
+    {:ok, pid} = Task.Supervisor.start_child(ZigorProxy.ClientSupervisor, ZigorProxy.Handler, :pass_packet, [listen_socket: origin, write_socket: client])
+    :ok = :gen_tcp.controlling_process(origin, pid)
+    pass_packet(client, origin)
   end
 
   defp pass_packet(listen_socket, write_socket) do
     listen_socket |>
       read_packet |>
       write_packet(write_socket)
+
+      pass_packet(listen_socket, write_socket)
   end
 
   defp read_packet(socket) do
@@ -22,12 +26,13 @@ defmodule ZigorProxy.Handler do
   end
 
   defp write_packet(packet, socket) do
-
+    :ok = write_pseudo socket
+    :ok = write_int32(socket, byte_size(packet))
+    :ok = write_bytes(socket, packet)
   end
 
   defp write_pseudo(socket) do
     write_bytes(socket, <<255, 254, 255, 255>>)
-    
   end
 
   defp origin_chan_create do
