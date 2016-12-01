@@ -1,6 +1,7 @@
 defmodule ZigorProxy.BitConverterTest do
   use ExUnit.Case
   import ZigorProxy.BitConverter
+  doctest ZigorProxy.BitConverter
 
   test ".converting int to bytes and bytes to ints is working with negative numbers?" do
     num = :rand.uniform(1_000_000)
