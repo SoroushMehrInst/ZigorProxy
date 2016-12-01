@@ -1,9 +1,13 @@
 defmodule ZigorProxy.Handler do
-  @doc """
-  handles an incomming socket before handshake and init encrypt
+  @moduledoc """
+  This module handles Zigor connections and whole ZigorSocket Operations.
   """
-  import SocketUtils
+  import ZigorProxy.SocketUtils
 
+  @doc """
+  this function will handle a zigor client connecting to socket.
+  everytime a user connects this function will be fired from the socket listener
+  """
   def handle_zigor_client(client) do
     {:ok, origin} = origin_chan_create
     {:ok, pid} = Task.Supervisor.start_child(ZigorProxy.ClientSupervisor, ZigorProxy.Handler, :pass_packet, [listen_socket: origin, write_socket: client])

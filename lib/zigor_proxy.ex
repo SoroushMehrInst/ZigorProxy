@@ -1,4 +1,7 @@
 defmodule ZigorProxy do
+  @moduledoc """
+  ZigorProxy module is able to proxy sockets from clients to server(s)
+  """
   use Application
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
