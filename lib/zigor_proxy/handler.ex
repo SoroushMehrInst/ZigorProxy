@@ -25,16 +25,24 @@ defmodule ZigorProxy.Handler do
       pass_packet(listen_socket, write_socket)
   end
 
-  defp read_packet(socket) do
+  @doc """
+  awaits pseudo on socket and then reads a packet from socket returns it from packet_Id
+  """
+  def read_packet(socket) do
     :ok = await_zigor_pseudo socket
     pack_len = read_int32(socket)
     read_bytes(socket, pack_len)
   end
 
-  defp write_packet(packet, socket) do
+  @doc """
+  writes pseudo, packet_length and packet data to a given socket
+  first argument is packet ans second argument is socket (for sake of using |> operator)
+  """
+  def write_packet(packet, socket) do
     :ok = write_pseudo socket
     :ok = write_int32(socket, byte_size(packet))
     :ok = write_bytes(socket, packet)
+    :ok
   end
 
   defp write_pseudo(socket) do
@@ -46,6 +54,14 @@ defmodule ZigorProxy.Handler do
     addr = Application.get_env(:zigor_proxy, :proxy_addr)
     port = Application.get_env(:zigor_proxy, :proxy_port)
 
+    connect_to(addr, port)
+  end
+
+  @doc """
+  connects to a tcp server using gen_tcp and default zigor socket opts
+  returns {:ok, socket} in term of success and {:error, reason} in case of error
+  """
+  def connect_to(addr, port) do
     :gen_tcp.connect(addr, port, [:binary, packet: :raw, active: false])
   end
 
