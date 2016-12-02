@@ -2,6 +2,7 @@ defmodule ZigorProxy.Server do
   @moduledoc """
   This module handles the tcp listener(s) and distributing tcp connections in Tasks.
   """
+  require Logger
 
   @doc """
   Starts listening for sockets on a specified port.
@@ -14,12 +15,10 @@ defmodule ZigorProxy.Server do
     loop_acceptor(socket)
   end
 
-  @doc """
-  This function will accept sockets and hand them off to socket handlers asynchronously
-  """
+  #TODO: Supervise server socket for reconnecting without client notice
   defp loop_acceptor(socket) do
     {:ok, client} = :gen_tcp.accept(socket)
-    {:ok, pid} = Task.Supervisor.start_child(ZigorProxy.ClientSupervisor, ZigorProxy.Handler, :handle_zigor_client, [client: client])
+    pid = spawn(ZigorProxy.Handler, :handle_zigor_client, [client: client])
     :ok = :gen_tcp.controlling_process(client, pid)
     loop_acceptor(socket)
   end

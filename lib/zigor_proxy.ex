@@ -14,7 +14,6 @@ defmodule ZigorProxy do
       # Starts a worker by calling: ZigorProxy.Worker.start_link(arg1, arg2, arg3)
       # worker(ZigorProxy.Worker, [arg1, arg2, arg3]),
       worker(Task, [ZigorProxy.Server, :start_listen, [4040]]),
-      supervisor(Task.Supervisor, [[name: ZigorProxy.ClientSupervisor]])
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

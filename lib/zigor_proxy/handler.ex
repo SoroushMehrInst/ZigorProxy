@@ -3,6 +3,7 @@ defmodule ZigorProxy.Handler do
   This module handles Zigor connections and whole ZigorSocket Operations.
   """
   import ZigorProxy.SocketUtils
+  require Logger
 
   @doc """
   this function will handle a zigor client connecting to socket.
@@ -10,7 +11,8 @@ defmodule ZigorProxy.Handler do
   """
   def handle_zigor_client(client) do
     {:ok, origin} = origin_chan_create
-    {:ok, pid} = Task.Supervisor.start_child(ZigorProxy.ClientSupervisor, ZigorProxy.Handler, :pass_packet, [listen_socket: origin, write_socket: client])
+    pid = spawn(ZigorProxy.Handler, :pass_packet, [listen_socket: origin, write_socket: client])
+
     :ok = :gen_tcp.controlling_process(origin, pid)
     pass_packet(client, origin)
   end
@@ -36,14 +38,15 @@ defmodule ZigorProxy.Handler do
   end
 
   defp write_pseudo(socket) do
-    write_bytes(socket, <<255, 254, 255, 255>>)
+    socket |>
+      write_bytes(<<255, 254, 255, 255>>)
   end
 
   defp origin_chan_create do
     addr = Application.get_env(:zigor_proxy, :proxy_addr)
     port = Application.get_env(:zigor_proxy, :proxy_port)
 
-    :gen_tcp.connect(addr, port, [:binary, packet: :raw, buffer: 128])
+    :gen_tcp.connect(addr, port, [:binary, packet: :raw, active: false])
   end
 
   defp await_zigor_pseudo(socket, index \\ 0) do
