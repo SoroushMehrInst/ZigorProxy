@@ -7,7 +7,11 @@ defmodule ZigorProxy.Mixfile do
      elixir: "~> 1.3",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps()]
+     deps: deps(),
+
+     #Docs
+     name: "Zigor Proxy Server"
+   ]
   end
 
   # Configuration for the OTP application
@@ -28,6 +32,6 @@ defmodule ZigorProxy.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    [{:ex_doc, "~> 0.14.4"}]
+    [{:ex_doc, "~> 0.14.4", only: :dev}]
   end
 end
