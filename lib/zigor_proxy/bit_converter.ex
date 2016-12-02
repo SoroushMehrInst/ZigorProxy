@@ -1,6 +1,7 @@
 defmodule ZigorProxy.BitConverter do
   @moduledoc """
-  This module handles standard binary operations
+  This module handles standard binary operations.
+  Converting binaries to and from general data types.
   """
 
   @doc """
@@ -14,8 +15,7 @@ defmodule ZigorProxy.BitConverter do
     iex> ZigorProxy.BitConverter.get_int32(<<0,0,0,10>>)
     10
   """
-  def get_int32(data) do
-    <<sign::size(1), num::size(31)>> = data
+  def get_int32(<<sign::size(1), num::size(31)>>) do
     if sign == 1 do
       -1 * (2147483648 - num)
     else
@@ -31,8 +31,8 @@ defmodule ZigorProxy.BitConverter do
     iex> ZigorProxy.BitConverter.int32_bytes(-1)
     <<255,255,255,255>>
 
-    iex> ZigorProxy.BitConverter.int32_bytes(1)
-    <<0,0,0,1>>
+    iex> ZigorProxy.BitConverter.int32_bytes(5)
+    <<0,0,0,5>>
   """
   def int32_bytes(number) do
     <<number::32>>
