@@ -4,6 +4,8 @@ defmodule ZigorProxy.BitConverter do
   Converting binaries to and from general data types.
   """
 
+  require Logger
+
   @doc """
   Converts binary of 4 bytes into an signed integer.
   First byte is considered as signature of number.
@@ -12,15 +14,11 @@ defmodule ZigorProxy.BitConverter do
     iex> ZigorProxy.BitConverter.get_int32(<<255,255,255,255>>)
     -1
 
-    iex> ZigorProxy.BitConverter.get_int32(<<0,0,0,10>>)
+    iex> ZigorProxy.BitConverter.get_int32(<<10,0,0,0>>)
     10
   """
-  def get_int32(<<sign::size(1), num::size(31)>>) do
-    if sign == 1 do
-      -1 * (2147483648 - num)
-    else
-      num
-    end
+  def get_int32(<<num::little-signed-integer-size(32)>>) do
+    num
   end
 
   @doc """
@@ -32,9 +30,9 @@ defmodule ZigorProxy.BitConverter do
     <<255,255,255,255>>
 
     iex> ZigorProxy.BitConverter.int32_bytes(5)
-    <<0,0,0,5>>
+    <<5,0,0,0>>
   """
   def int32_bytes(number) do
-    <<number::32>>
+    <<number::little-signed-32>>
   end
 end
