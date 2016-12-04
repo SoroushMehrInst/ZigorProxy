@@ -19,12 +19,14 @@ defmodule ZigorProxy.Handler do
     pass_packet(client, origin)
   end
 
-  def pass_packet(listen_socket, write_socket) do
-    listen_socket |>
+  def pass_packet(listen_socket, write_socket, nilpacks \\ 0) do
+    case listen_socket |>
       read_packet |>
-      write_packet(write_socket)
-
-    pass_packet(listen_socket, write_socket)
+      write_packet(write_socket) do
+        :ok -> pass_packet(listen_socket, write_socket, 0)
+        :nil_packet when nilpacks <= 5 -> pass_packet(listen_socket, write_socket, nilpacks + 1)
+        :nil_packet when nilpacks > 5 -> {:error, :nodata}
+      end
   end
 
   @doc """
@@ -49,7 +51,7 @@ defmodule ZigorProxy.Handler do
   end
 
   def write_packet(nil, _socket) do
-    :ok
+    :nil_packet
   end
 
   defp write_pseudo(socket) do

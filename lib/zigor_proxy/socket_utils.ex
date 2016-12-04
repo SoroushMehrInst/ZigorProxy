@@ -20,6 +20,7 @@ defmodule ZigorProxy.SocketUtils do
   def read_bytes(socket, count) do
     case :gen_tcp.recv(socket, count, 1000) do
       {:ok, data} -> data
+      {:error, :closed} -> raise "ConClosed"
       _ -> nil
     end
   end
@@ -29,6 +30,7 @@ defmodule ZigorProxy.SocketUtils do
   def read_byte(socket) do
     case :gen_tcp.recv(socket, 1, 1000) do
       {:ok, << single >>} -> single
+      {:error, :closed} -> raise "ConClosed"
       _ -> nil
     end
   end
