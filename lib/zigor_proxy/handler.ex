@@ -10,17 +10,22 @@ defmodule ZigorProxy.Handler do
   everytime a user connects this function will be fired from the socket listener
   """
   def handle_zigor_client(client) do
+    Logger.debug "client connected"
     {:ok, origin} = origin_chan_create
-    pid = spawn(ZigorProxy.Handler, :pass_packet, [listen_socket: origin, write_socket: client])
-
+    
+    pid = spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
     :ok = :gen_tcp.controlling_process(origin, pid)
+
     pass_packet(client, origin)
   end
 
-  defp pass_packet(listen_socket, write_socket) do
+  def pass_packet(listen_socket, write_socket) do
+    Logger.debug "Packet pass start"
     listen_socket |>
       read_packet |>
       write_packet(write_socket)
+
+      Logger.debug "Packet proceed"
 
       pass_packet(listen_socket, write_socket)
   end
@@ -31,6 +36,7 @@ defmodule ZigorProxy.Handler do
   def read_packet(socket) do
     :ok = await_zigor_pseudo socket
     pack_len = read_int32(socket)
+    Logger.debug "pack len #{pack_len}"
     read_bytes(socket, pack_len)
   end
 
@@ -47,7 +53,7 @@ defmodule ZigorProxy.Handler do
 
   defp write_pseudo(socket) do
     socket |>
-      write_bytes(<<255, 254, 255, 255>>)
+      write_bytes(<<255, 255, 254, 255>>)
   end
 
   defp origin_chan_create do
@@ -66,10 +72,12 @@ defmodule ZigorProxy.Handler do
   end
 
   defp await_zigor_pseudo(socket, index \\ 0) do
-    case {index, read_byte(socket)} do
+    pseitem = read_byte(socket)
+    Logger.debug "PseudoByte: #{pseitem}"
+    case {index, pseitem} do
       {0, 255} -> await_zigor_pseudo(socket, 1)
-      {1, 254} -> await_zigor_pseudo(socket, 2)
-      {2, 255} -> await_zigor_pseudo(socket, 3)
+      {1, 255} -> await_zigor_pseudo(socket, 2)
+      {2, 254} -> await_zigor_pseudo(socket, 3)
       {3, 255} -> :ok
       _ -> await_zigor_pseudo(socket, 0)
     end
