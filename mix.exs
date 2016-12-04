@@ -10,7 +10,9 @@ defmodule ZigorProxy.Mixfile do
      deps: deps(),
 
      #Docs
-     name: "Zigor Proxy Server"
+     name: "Zigor Proxy Server",
+     source_url: "https://github.com/Resaneh24/ZigorProxy",
+     homepage_url: "http://r24.ir/Projects/ZigorProxy",
    ]
   end
 
