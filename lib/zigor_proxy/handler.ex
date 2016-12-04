@@ -10,7 +10,7 @@ defmodule ZigorProxy.Handler do
   everytime a user connects this function will be fired from the socket listener
   """
   def handle_zigor_client(client) do
-    Logger.debug "client connected"
+    Logger.debug "new client connected"
     {:ok, origin} = origin_chan_create
 
     pid = spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
@@ -45,6 +45,10 @@ defmodule ZigorProxy.Handler do
     :ok = write_pseudo socket
     :ok = write_int32(socket, byte_size(packet))
     :ok = write_bytes(socket, packet)
+    :ok
+  end
+
+  def write_packet(nil, _socket) do
     :ok
   end
 

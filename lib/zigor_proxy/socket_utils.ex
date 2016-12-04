@@ -15,16 +15,22 @@ defmodule ZigorProxy.SocketUtils do
     get_int32
   end
 
+  # TODO: Handle {:error, :closed} on socket read
   @doc "reads \"count\" bytes from \"socket\" and returns it as binary"
   def read_bytes(socket, count) do
-    {:ok, data} = :gen_tcp.recv(socket, count)
-    data
+    case :gen_tcp.recv(socket, count, 1000) do
+      {:ok, data} -> data
+      _ -> nil
+    end
   end
 
+# TODO: Handle {:error, :closed} on socket read
   @doc "reads a single byte form socket and returns it as number"
   def read_byte(socket) do
-    {:ok, << single >>} = :gen_tcp.recv(socket, 1)
-    single
+    case :gen_tcp.recv(socket, 1, 1000) do
+      {:ok, << single >>} -> single
+      _ -> nil
+    end
   end
 
   ###
