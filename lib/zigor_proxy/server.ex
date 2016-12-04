@@ -18,7 +18,7 @@ defmodule ZigorProxy.Server do
   #TODO: Supervise server socket for reconnecting without client notice
   defp loop_acceptor(socket) do
     {:ok, client} = :gen_tcp.accept(socket)
-    pid = spawn(ZigorProxy.Handler, :handle_zigor_client, [client: client])
+    pid = spawn(ZigorProxy.Handler, :handle_zigor_client, [client])
     :ok = :gen_tcp.controlling_process(client, pid)
     loop_acceptor(socket)
   end

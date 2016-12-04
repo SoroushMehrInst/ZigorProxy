@@ -13,7 +13,7 @@ defmodule ZigorProxy do
     children = [
       # Starts a worker by calling: ZigorProxy.Worker.start_link(arg1, arg2, arg3)
       # worker(ZigorProxy.Worker, [arg1, arg2, arg3]),
-      worker(Task, [ZigorProxy.Server, :start_listen, [4040]]),
+      worker(Task, [ZigorProxy.Server, :start_listen, [901]]),
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

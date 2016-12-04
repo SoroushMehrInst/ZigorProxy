@@ -2,8 +2,8 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
-config :zigor_proxy, proxy_addr: 'irr.mansrv.com'
-config :zigor_proxy, proxy_port: 80
+config :zigor_proxy, proxy_addr: '192.168.1.14'
+config :zigor_proxy, proxy_port: 9011
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
 # file won't be loaded nor affect the parent project. For this reason,
