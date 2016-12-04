@@ -12,7 +12,7 @@ defmodule ZigorProxy.Handler do
   def handle_zigor_client(client) do
     Logger.debug "client connected"
     {:ok, origin} = origin_chan_create
-    
+
     pid = spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
     :ok = :gen_tcp.controlling_process(origin, pid)
 
@@ -20,14 +20,11 @@ defmodule ZigorProxy.Handler do
   end
 
   def pass_packet(listen_socket, write_socket) do
-    Logger.debug "Packet pass start"
     listen_socket |>
       read_packet |>
       write_packet(write_socket)
 
-      Logger.debug "Packet proceed"
-
-      pass_packet(listen_socket, write_socket)
+    pass_packet(listen_socket, write_socket)
   end
 
   @doc """
@@ -36,7 +33,7 @@ defmodule ZigorProxy.Handler do
   def read_packet(socket) do
     :ok = await_zigor_pseudo socket
     pack_len = read_int32(socket)
-    Logger.debug "pack len #{pack_len}"
+
     read_bytes(socket, pack_len)
   end
 
@@ -73,7 +70,6 @@ defmodule ZigorProxy.Handler do
 
   defp await_zigor_pseudo(socket, index \\ 0) do
     pseitem = read_byte(socket)
-    Logger.debug "PseudoByte: #{pseitem}"
     case {index, pseitem} do
       {0, 255} -> await_zigor_pseudo(socket, 1)
       {1, 255} -> await_zigor_pseudo(socket, 2)
