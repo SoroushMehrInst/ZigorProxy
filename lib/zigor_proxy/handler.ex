@@ -10,13 +10,20 @@ defmodule ZigorProxy.Handler do
   everytime a user connects this function will be fired from the socket listener
   """
   def handle_zigor_client(client) do
-    Logger.debug "new client connected"
+    Logger.debug "--- New client connected"
     {:ok, origin} = origin_chan_create
 
     pid = spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
     :ok = :gen_tcp.controlling_process(origin, pid)
 
     pass_packet(client, origin)
+
+    :gen_tcp.close(client)
+    :gen_tcp.close(origin)
+
+    Process.exit(pid, :kill)
+
+    Logger.debug "-x- a client disconnected!"
   end
 
   def pass_packet(listen_socket, write_socket, nilpacks \\ 0) do
@@ -26,10 +33,7 @@ defmodule ZigorProxy.Handler do
         :ok -> pass_packet(listen_socket, write_socket, 0)
         :nil_packet when nilpacks <= 5 -> pass_packet(listen_socket, write_socket, nilpacks + 1)
         :nil_packet when nilpacks > 5 -> {:error, :nodata}
-        :spih ->
-          :gen_tcp.close(listen_socket)
-          :gen_tcp.close(write_socket)
-          {:error, :node_died}
+        :sopih -> {:error, :node_died} # Shoot other Peer In the Head
       end
   end
 
@@ -37,10 +41,13 @@ defmodule ZigorProxy.Handler do
   awaits pseudo on socket and then reads a packet from socket returns it from packet_Id
   """
   def read_packet(socket) do
-    :ok = await_zigor_pseudo socket
-    pack_len = read_int32(socket)
+    case await_zigor_pseudo socket do
+        :ok ->
+          pack_len = read_int32(socket)
+          read_bytes(socket, pack_len)
+        _  -> nil
+    end
 
-    read_bytes(socket, pack_len)
   end
 
   @doc """
@@ -59,7 +66,7 @@ defmodule ZigorProxy.Handler do
   end
 
   def write_packet({:error, _reason}, _socket) do
-
+    :sopih # Shoot other Peer In the Head
   end
 
   defp write_pseudo(socket) do
@@ -79,16 +86,17 @@ defmodule ZigorProxy.Handler do
   returns {:ok, socket} in term of success and {:error, reason} in case of error
   """
   def connect_to(addr, port) do
-    :gen_tcp.connect(addr, port, [:binary, packet: :raw, active: false])
+    :gen_tcp.connect(addr, port, [:binary, packet: :raw, active: false, keepalive: true])
   end
 
   defp await_zigor_pseudo(socket, index \\ 0) do
-    pseitem = read_byte(socket)
-    case {index, pseitem} do
+    case {index, read_byte(socket)} do
       {0, 255} -> await_zigor_pseudo(socket, 1)
       {1, 255} -> await_zigor_pseudo(socket, 2)
       {2, 254} -> await_zigor_pseudo(socket, 3)
       {3, 255} -> :ok
+      {_, {:error, _}} -> :error
+      {_, nil} -> :error
       _ -> await_zigor_pseudo(socket, 0)
     end
   end
