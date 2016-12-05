@@ -26,6 +26,10 @@ defmodule ZigorProxy.Handler do
         :ok -> pass_packet(listen_socket, write_socket, 0)
         :nil_packet when nilpacks <= 5 -> pass_packet(listen_socket, write_socket, nilpacks + 1)
         :nil_packet when nilpacks > 5 -> {:error, :nodata}
+        :spih ->
+          :gen_tcp.close(listen_socket)
+          :gen_tcp.close(write_socket)
+          {:error, :node_died}
       end
   end
 
@@ -43,7 +47,7 @@ defmodule ZigorProxy.Handler do
   writes pseudo, packet_length and packet data to a given socket
   first argument is packet ans second argument is socket (for sake of using |> operator)
   """
-  def write_packet(packet, socket) do
+  def write_packet(packet, socket) when is_nil(packet) == false do
     :ok = write_pseudo socket
     :ok = write_int32(socket, byte_size(packet))
     :ok = write_bytes(socket, packet)
@@ -52,6 +56,10 @@ defmodule ZigorProxy.Handler do
 
   def write_packet(nil, _socket) do
     :nil_packet
+  end
+
+  def write_packet({:error, _reason}, _socket) do
+
   end
 
   defp write_pseudo(socket) do
