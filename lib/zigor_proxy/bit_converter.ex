@@ -21,6 +21,10 @@ defmodule ZigorProxy.BitConverter do
     num
   end
 
+  def get_int32(_) do
+    {:error, :argument_exeption}
+  end
+
   @doc """
   Converts a number into binary.
   this function handles negative and positive numbers.
