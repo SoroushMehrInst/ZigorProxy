@@ -10,18 +10,18 @@ defmodule ZigorProxy.Server do
 
   Whenever a client connects, handle_zigor_client will fire from ZigorProxy.Handler
   """
-  def start_listen(port, ip) do
+  def start_listen(port, ip, server_port, server_ip) do
     Logger.debug "Starting service on #{port}"
     {:ok, socket} = :gen_tcp.listen(port, [:binary, packet: :raw, ip: ip, active: false, reuseaddr: true, keepalive: true])
     Logger.debug "listener successfully started on #{port}"
-    loop_acceptor(socket)
+    loop_acceptor(socket, server_port, server_ip)
   end
 
   #TODO: Supervise server socket for reconnecting without client notice
-  defp loop_acceptor(socket) do
+  defp loop_acceptor(socket, server_port, server_ip) do
     {:ok, client} = :gen_tcp.accept(socket)
-    pid = spawn(ZigorProxy.Handler, :handle_zigor_client, [client])
+    pid = spawn(ZigorProxy.Handler, :handle_zigor_client, [client, server_port, server_ip])
     :ok = :gen_tcp.controlling_process(client, pid)
-    loop_acceptor(socket)
+    loop_acceptor(socket, server_port, server_ip)
   end
 end

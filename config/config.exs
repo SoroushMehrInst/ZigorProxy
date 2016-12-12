@@ -2,10 +2,12 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
-config :zigor_proxy, proxy_addr: '192.168.1.14'
-config :zigor_proxy, proxy_port: 9011
+# config :zigor_proxy, proxy_addr: '192.168.1.14'
+# config :zigor_proxy, proxy_port: 9011
 
-config :zigor_proxy, bindings: [{:zigcrypt, {192, 168, 100, 20}, 901}]
+# Binding structure: {:cryppto, Local_addr, local_port, remote_addr, remote_port}
+config :zigor_proxy, bindings: [{:zigcrypt, {192, 168, 100, 20}, 901, '192.168.1.14', 9011}]
+
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
 # file won't be loaded nor affect the parent project. For this reason,

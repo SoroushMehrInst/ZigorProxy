@@ -9,9 +9,9 @@ defmodule ZigorProxy.Handler do
   this function will handle a zigor client connecting to socket.
   everytime a user connects this function will be fired from the socket listener
   """
-  def handle_zigor_client(client) do
+  def handle_zigor_client(client, server_port, server_ip) do
     Logger.debug "--- New client connected"
-    {:ok, origin} = origin_chan_create
+    {:ok, origin} = connect_to(server_ip, server_port)
 
     pid = spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
     :ok = :gen_tcp.controlling_process(origin, pid)
@@ -26,7 +26,7 @@ defmodule ZigorProxy.Handler do
     Logger.debug "-x- a client disconnected!"
   end
 
-  def pass_packet(listen_socket, write_socket, nilpacks \\ 0) do
+  defp pass_packet(listen_socket, write_socket, nilpacks \\ 0) do
     case listen_socket |>
       read_packet |>
       write_packet(write_socket) do
@@ -72,13 +72,6 @@ defmodule ZigorProxy.Handler do
   defp write_pseudo(socket) do
     socket |>
       write_bytes(<<255, 255, 254, 255>>)
-  end
-
-  defp origin_chan_create do
-    addr = Application.get_env(:zigor_proxy, :proxy_addr)
-    port = Application.get_env(:zigor_proxy, :proxy_port)
-
-    connect_to(addr, port)
   end
 
   @doc """
