@@ -10,15 +10,28 @@ defmodule ZigorProxy do
     import Supervisor.Spec, warn: false
 
     # Define workers and child supervisors to be supervised
-    children = [
-      # Starts a worker by calling: ZigorProxy.Worker.start_link(arg1, arg2, arg3)
-      # worker(ZigorProxy.Worker, [arg1, arg2, arg3]),
-      worker(Task, [ZigorProxy.Server, :start_listen, [901]]),
-    ]
+    children = get_bindings
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: ZigorProxy.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  def get_bindings do
+    do_get_bindings Application.get_env(:zigor_proxy, :bindings), []
+  end
+
+  defp do_get_bindings([bind | tail], final_binds) do
+    import Supervisor.Spec, warn: false
+    case bind do
+      {:zigcrypt, ip, port} -> do_get_bindings(tail, [worker(Task, [ZigorProxy.Server, :start_listen, [port, ip]]) | final_binds])
+      {:sslcrypt, ip, port} -> do_get_bindings(tail, [worker(Task, [ZigorProxy.Server, :start_listen_ssl, [port, ip]]) | final_binds])
+      _ -> nil
+    end
+  end
+
+  defp do_get_bindings([], final_binds) do
+    final_binds
   end
 end

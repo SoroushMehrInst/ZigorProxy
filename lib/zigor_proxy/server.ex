@@ -10,8 +10,10 @@ defmodule ZigorProxy.Server do
 
   Whenever a client connects, handle_zigor_client will fire from ZigorProxy.Handler
   """
-  def start_listen(port) do
-    {:ok, socket} = :gen_tcp.listen(port, [:binary, packet: :raw, active: false, reuseaddr: true, keepalive: true])
+  def start_listen(port, ip) do
+    Logger.debug "Starting service on #{port}"
+    {:ok, socket} = :gen_tcp.listen(port, [:binary, packet: :raw, ip: ip, active: false, reuseaddr: true, keepalive: true])
+    Logger.debug "listener successfully started on #{port}"
     loop_acceptor(socket)
   end
 
