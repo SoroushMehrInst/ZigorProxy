@@ -26,7 +26,8 @@ defmodule ZigorProxy.Handler do
     Logger.debug "-x- a client disconnected!"
   end
 
-  defp pass_packet(listen_socket, write_socket, nilpacks \\ 0) do
+  @doc false
+  def pass_packet(listen_socket, write_socket, nilpacks \\ 0) do
     case listen_socket |>
       read_packet |>
       write_packet(write_socket) do
