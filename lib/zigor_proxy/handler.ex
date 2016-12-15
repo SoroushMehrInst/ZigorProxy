@@ -8,6 +8,11 @@ defmodule ZigorProxy.Handler do
   @doc """
   this function will handle a zigor client connecting to socket.
   everytime a user connects this function will be fired from the socket listener
+
+  ## Parameters
+    - client: the client socket which connected to server listener bindings
+    - server_port: real end of proxy port
+    - server_ip: read end of proxy ip address
   """
   def handle_zigor_client(client, server_port, server_ip) do
     Logger.debug "--- New client connected"
@@ -40,6 +45,9 @@ defmodule ZigorProxy.Handler do
 
   @doc """
   awaits pseudo on socket and then reads a packet from socket returns it from packet_Id
+
+  ## Parameters
+    - socket: TCP socket to read from
   """
   def read_packet(socket) do
     case await_zigor_pseudo socket do
@@ -54,6 +62,10 @@ defmodule ZigorProxy.Handler do
   @doc """
   writes pseudo, packet_length and packet data to a given socket
   first argument is packet ans second argument is socket (for sake of using |> operator)
+
+  ## Parameters
+    - packet: packet in form of binary to write to a TCP socket (should not include `pseudo` or `size`)
+    - socket: a TCP socket to write the packet to
   """
   def write_packet(packet, socket) when is_nil(packet) == false do
     :ok = write_pseudo socket
@@ -78,6 +90,10 @@ defmodule ZigorProxy.Handler do
   @doc """
   connects to a tcp server using gen_tcp and default zigor socket opts
   returns {:ok, socket} in term of success and {:error, reason} in case of error
+
+  ## Parameters
+    - addr: the IP address of a remote TCP binding to connect to
+    - port: the port of a remote TCP binding to connect to
   """
   def connect_to(addr, port) do
     :gen_tcp.connect(addr, port, [:binary, packet: :raw, active: false, keepalive: true])
