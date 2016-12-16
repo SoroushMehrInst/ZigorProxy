@@ -9,6 +9,12 @@ defmodule ZigorProxy.Server do
   This call is never ending!
 
   Whenever a client connects, handle_zigor_client will fire from ZigorProxy.Handler
+
+  ## Parameters
+    - port: port number of the listener bindings
+    - ip: ip address of the listener bindings
+    - server_port: port of real end zigor server
+    - server_ip: IP address of real end zigor server
   """
   def start_listen(port, ip, server_port, server_ip) do
     Logger.debug "Starting service on #{port}"
