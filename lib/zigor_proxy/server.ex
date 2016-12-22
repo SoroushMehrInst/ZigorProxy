@@ -17,9 +17,9 @@ defmodule ZigorProxy.Server do
     - server_ip: IP address of real end zigor server
   """
   def start_listen(port, ip, server_port, server_ip) do
-    Logger.debug "Starting service on #{port}"
+    Logger.info "Starting service on #{port}"
     {:ok, socket} = :gen_tcp.listen(port, [:binary, packet: :raw, ip: ip, active: false, reuseaddr: true, keepalive: true])
-    Logger.debug "listener successfully started on #{port}"
+    Logger.info "listener successfully started on #{port}"
     loop_acceptor(socket, server_port, server_ip)
   end
 

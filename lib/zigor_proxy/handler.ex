@@ -15,7 +15,6 @@ defmodule ZigorProxy.Handler do
     - server_ip: read end of proxy ip address
   """
   def handle_zigor_client(client, server_port, server_ip) do
-    Logger.debug "--- New client connected"
     {:ok, origin} = connect_to(server_ip, server_port)
 
     pid = spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
@@ -27,8 +26,6 @@ defmodule ZigorProxy.Handler do
     :gen_tcp.close(origin)
 
     Process.exit(pid, :kill)
-
-    Logger.debug "-x- a client disconnected!"
   end
 
   @doc false
