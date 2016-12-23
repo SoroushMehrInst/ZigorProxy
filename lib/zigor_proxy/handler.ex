@@ -98,7 +98,7 @@ defmodule ZigorProxy.Handler do
 
   # First strike to read zigor pseudo, if match failed, we go old school!
   defp await_zigor_pseudo(socket) do
-    case read_byte(socket) do
+    case read_bytes(socket, 4) do
       <<255, 255, 254, 255>> -> :ok
       _ -> await_zigor_pseudo(socket, 0)
     end
