@@ -7,8 +7,10 @@ this proxy server can be used to load balance and maintain stability around zigo
 ## Configuration
 
 Since zigor proxy is not maintained with package managers, it only can be used from building source code on your machine.
+
 While building your code, you can provide your binding configs in config/config.exs (Or config/{Mix.env}.exs if you want to vary your test bindings from production bindings)
-For configuring a binding in zigor_proxy (version < 0.2) you can user
+
+For configuring a binding in zigor_proxy (version < 0.2) you can use:
 ```elixir
   config :zigor_proxy, bindings: [{:zigcrypt, {192, 168, 100, 20}, 901, '192.168.1.14', 9011}]
   # First argument of each binding is an atom determining what type of encryption should be used
