@@ -47,7 +47,7 @@ defmodule ZigorProxy.Handler do
     - socket: TCP socket to read from
   """
   def read_packet(socket) do
-    case await_zigor_pseudo socket do
+    case await_zigor_pseudo(socket) do
         :ok ->
           pack_len = read_int32(socket)
           read_bytes(socket, pack_len)
@@ -96,7 +96,15 @@ defmodule ZigorProxy.Handler do
     :gen_tcp.connect(addr, port, [:binary, packet: :raw, active: false, keepalive: true])
   end
 
-  defp await_zigor_pseudo(socket, index \\ 0) do
+  # First strike to read zigor pseudo, if match failed, we go old school!
+  defp await_zigor_pseudo(socket) do
+    case read_byte(socket) do
+      <<255, 255, 254, 255>> -> :ok
+      _ -> await_zigor_pseudo(socket, 0)
+    end
+  end
+
+  defp await_zigor_pseudo(socket, index) do
     case {index, read_byte(socket)} do
       {0, 255} -> await_zigor_pseudo(socket, 1)
       {1, 255} -> await_zigor_pseudo(socket, 2)
