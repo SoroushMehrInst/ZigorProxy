@@ -12,7 +12,7 @@ While building your code, you can provide your binding configs in config/config.
 
 For configuring a binding in zigor_proxy (version < 0.2) you can use:
 ```elixir
-  config :zigor_proxy, bindings: [{:zigcrypt, {192, 168, 100, 20}, 901, '192.168.1.14', 9011}]
+  config :zigor_proxy, bindings: [{:zigcrypt, {192, 168, 100, 20}, 1234, 'realaddr.example.com', 1234}]
   # First argument of each binding is an atom determining what type of encryption should be used
   # Second and third arguments of each binding determines ip and port you wish proxy to run on
   # Fourth and fifth arguments of each binding determines the real zigor server to redirect user packets to
