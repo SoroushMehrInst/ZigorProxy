@@ -65,10 +65,19 @@ defmodule ZigorProxy.Handler do
     - socket: a TCP socket to write the packet to
   """
   def write_packet(packet, socket) when is_nil(packet) == false do
-    :ok = write_pseudo socket
-    :ok = write_int32(socket, byte_size(packet))
-    :ok = write_bytes(socket, packet)
-    :ok
+    if :ok == write_pseudo(socket) do
+      if :ok == write_int32(socket, byte_size(packet)) do
+        if :ok == write_bytes(socket, packet) do
+          :ok
+        else
+          :nil_packet
+        end
+      else
+        :nil_packet
+      end
+    else
+      :nil_packet
+    end
   end
 
   def write_packet(nil, _socket) do
