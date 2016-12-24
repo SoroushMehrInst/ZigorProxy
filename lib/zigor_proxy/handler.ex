@@ -3,7 +3,6 @@ defmodule ZigorProxy.Handler do
   This module handles Zigor connections and whole ZigorSocket Operations.
   """
   import ZigorProxy.SocketUtils
-  require Logger
 
   @doc """
   this function will handle a zigor client connecting to socket.
@@ -15,17 +14,21 @@ defmodule ZigorProxy.Handler do
     - server_ip: read end of proxy ip address
   """
   def handle_zigor_client(client, server_port, server_ip) do
-    {:ok, origin} = connect_to(server_ip, server_port)
+    case connect_to(server_ip, server_port) do
+      {:ok, origin} ->
+        pid = spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
+        :ok = :gen_tcp.controlling_process(origin, pid)
 
-    pid = spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
-    :ok = :gen_tcp.controlling_process(origin, pid)
+        pass_packet(client, origin)
 
-    pass_packet(client, origin)
+        :gen_tcp.close(client)
+        :gen_tcp.close(origin)
 
-    :gen_tcp.close(client)
-    :gen_tcp.close(origin)
-
-    Process.exit(pid, :kill)
+        Process.exit(pid, :kill)
+      _ ->
+        :timer.sleep(200)
+        handle_zigor_client(client, server_port, server_ip)
+    end
   end
 
   @doc false
