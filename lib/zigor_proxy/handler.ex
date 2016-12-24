@@ -25,9 +25,7 @@ defmodule ZigorProxy.Handler do
         :gen_tcp.close(origin)
 
         Process.exit(pid, :kill)
-      _ ->
-        :timer.sleep(200)
-        handle_zigor_client(client, server_port, server_ip)
+      _ -> :ok
     end
   end
 
