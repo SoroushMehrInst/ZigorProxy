@@ -59,6 +59,16 @@ defmodule ZigorProxy.Handler do
     end
   end
 
+  @doc false
+  def write_packet(nil, _socket) do
+    :nil_packet
+  end
+
+  @doc false
+  def write_packet({:error, _reason}, _socket) do
+    :sopih # Shoot other Peer In the Head
+  end
+
   @doc """
   writes pseudo, packet_length and packet data to a given socket
   first argument is packet ans second argument is socket (for sake of using |> operator)
@@ -67,7 +77,7 @@ defmodule ZigorProxy.Handler do
     - packet: packet in form of binary to write to a TCP socket (should not include `pseudo` or `size`)
     - socket: a TCP socket to write the packet to
   """
-  def write_packet(packet, socket) when is_nil(packet) == false do
+  def write_packet(packet, socket) do
     write_pseudo(socket)
     write_int32(socket, byte_size(packet))
 
@@ -75,14 +85,6 @@ defmodule ZigorProxy.Handler do
       :ok -> :ok
       _ -> :nil_packet
     end
-  end
-
-  def write_packet(nil, _socket) do
-    :nil_packet
-  end
-
-  def write_packet({:error, _reason}, _socket) do
-    :sopih # Shoot other Peer In the Head
   end
 
   defp write_pseudo(socket) do

@@ -8,7 +8,7 @@ defmodule ZigorProxy.Server do
   Starts listening for sockets on a specified port.
   This call is never ending!
 
-  Whenever a client connects, handle_zigor_client will fire from ZigorProxy.Handler
+  Whenever a client connects, handle_client will fire from ZigorProxy.Handler
 
   ## Parameters
     - port: port number of the listener bindings
@@ -27,7 +27,7 @@ defmodule ZigorProxy.Server do
   defp loop_acceptor(socket, server_port, server_ip) do
     case :gen_tcp.accept(socket) do
       {:ok, client} ->
-        pid = spawn(ZigorProxy.Handler, :handle_zigor_client, [client, server_port, server_ip])
+        pid = spawn(ZigorProxy.Handler, :handle_client, [client, server_port, server_ip])
         :ok = :gen_tcp.controlling_process(client, pid)
         loop_acceptor(socket, server_port, server_ip)
       _ -> loop_acceptor(socket, server_port, server_ip)
