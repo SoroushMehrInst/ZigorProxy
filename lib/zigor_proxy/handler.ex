@@ -16,7 +16,7 @@ defmodule ZigorProxy.Handler do
   def handle_client(client, server_port, server_ip) do
     case connect_to(server_ip, server_port) do
       {:ok, origin} ->
-        pid = spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
+        pid = :proc_lib.spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
         :ok = :gen_tcp.controlling_process(origin, pid)
 
         pass_packet(client, origin)
@@ -101,7 +101,7 @@ defmodule ZigorProxy.Handler do
     - port: the port of a remote TCP binding to connect to
   """
   def connect_to(addr, port) do
-    :gen_tcp.connect(addr, port, [:binary, packet: :raw, active: false, keepalive: true])
+    :gen_tcp.connect(addr, port, [:binary, packet: :raw, active: false])
   end
 
   # First strike to read zigor pseudo, if match failed, we go old school!

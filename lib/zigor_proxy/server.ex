@@ -18,7 +18,7 @@ defmodule ZigorProxy.Server do
   """
   def start_listen(port, ip, server_port, server_ip) do
     Logger.info "Starting service on #{port}"
-    {:ok, socket} = :gen_tcp.listen(port, [:binary, packet: :raw, ip: ip, active: false, reuseaddr: true, keepalive: true])
+    {:ok, socket} = :gen_tcp.listen(port, [:binary, packet: :raw, ip: ip, active: false, reuseaddr: true])
     Logger.info "listener successfully started on #{port}"
     loop_acceptor(socket, server_port, server_ip)
   end
@@ -27,8 +27,8 @@ defmodule ZigorProxy.Server do
   defp loop_acceptor(socket, server_port, server_ip) do
     case :gen_tcp.accept(socket) do
       {:ok, client} ->
-        pid = spawn(ZigorProxy.Handler, :handle_client, [client, server_port, server_ip])
-        :ok = :gen_tcp.controlling_process(client, pid)
+        pid = :proc_lib.spawn(ZigorProxy.Handler, :handle_client, [client, server_port, server_ip])
+        :gen_tcp.controlling_process(client, pid)
         loop_acceptor(socket, server_port, server_ip)
       _ -> loop_acceptor(socket, server_port, server_ip)
     end
