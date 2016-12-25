@@ -4,8 +4,6 @@ defmodule ZigorProxy.BitConverter do
   Converting binaries to and from general data types.
   """
 
-  require Logger
-
   @doc """
   Converts binary of 4 bytes into an signed integer.
   First byte is considered as signature of number.

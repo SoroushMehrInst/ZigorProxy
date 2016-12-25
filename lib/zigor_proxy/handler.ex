@@ -13,7 +13,7 @@ defmodule ZigorProxy.Handler do
     - server_port: real end of proxy port
     - server_ip: read end of proxy ip address
   """
-  def handle_zigor_client(client, server_port, server_ip) do
+  def handle_client(client, server_port, server_ip) do
     case connect_to(server_ip, server_port) do
       {:ok, origin} ->
         pid = spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
@@ -23,22 +23,25 @@ defmodule ZigorProxy.Handler do
 
         :gen_tcp.close(client)
         :gen_tcp.close(origin)
-
-        Process.exit(pid, :kill)
       _ -> :ok
     end
   end
 
   @doc false
-  def pass_packet(listen_socket, write_socket, nilpacks \\ 0) do
-    case listen_socket |>
-      read_packet |>
-      write_packet(write_socket) do
-        :ok -> pass_packet(listen_socket, write_socket, 0)
-        :nil_packet when nilpacks <= 5 -> pass_packet(listen_socket, write_socket, nilpacks + 1)
-        :nil_packet when nilpacks > 5 -> {:error, :nodata}
+  def pass_packet(from, to, nils \\ 0) do
+    case pipe_packet(from, to) do
+        :ok -> pass_packet(from, to, 0)
+        :nil_packet when nils <= 2 -> pass_packet(from, to, nils + 1)
+        :nil_packet when nils > 2 -> {:error, :nodata}
         :sopih -> {:error, :node_died} # Shoot other Peer In the Head
+        _ -> {:error, :unknown}
       end
+  end
+
+  defp pipe_packet(from, to) do
+    from |>
+    read_packet |>
+    write_packet(to)
   end
 
   @doc """
@@ -54,7 +57,6 @@ defmodule ZigorProxy.Handler do
           read_bytes(socket, pack_len)
         _  -> nil
     end
-
   end
 
   @doc """
@@ -66,18 +68,12 @@ defmodule ZigorProxy.Handler do
     - socket: a TCP socket to write the packet to
   """
   def write_packet(packet, socket) when is_nil(packet) == false do
-    if :ok == write_pseudo(socket) do
-      if :ok == write_int32(socket, byte_size(packet)) do
-        if :ok == write_bytes(socket, packet) do
-          :ok
-        else
-          :nil_packet
-        end
-      else
-        :nil_packet
-      end
-    else
-      :nil_packet
+    write_pseudo(socket)
+    write_int32(socket, byte_size(packet))
+
+    case write_bytes(socket, packet) do
+      :ok -> :ok
+      _ -> :nil_packet
     end
   end
 
