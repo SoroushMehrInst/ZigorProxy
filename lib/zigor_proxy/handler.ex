@@ -3,7 +3,6 @@ defmodule ZigorProxy.Handler do
   This module handles Zigor connections and whole ZigorSocket Operations.
   """
   import ZigorProxy.SocketUtils
-  require Logger
 
   @doc """
   this function will handle a zigor client connecting to socket.
@@ -14,30 +13,35 @@ defmodule ZigorProxy.Handler do
     - server_port: real end of proxy port
     - server_ip: read end of proxy ip address
   """
-  def handle_zigor_client(client, server_port, server_ip) do
-    {:ok, origin} = connect_to(server_ip, server_port)
+  def handle_client(client, server_port, server_ip) do
+    case connect_to(server_ip, server_port) do
+      {:ok, origin} ->
+        pid = :proc_lib.spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
+        :gen_tcp.controlling_process(origin, pid)
 
-    pid = spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
-    :ok = :gen_tcp.controlling_process(origin, pid)
+        pass_packet(client, origin)
 
-    pass_packet(client, origin)
-
-    :gen_tcp.close(client)
-    :gen_tcp.close(origin)
-
-    Process.exit(pid, :kill)
+        :gen_tcp.close(client)
+        :gen_tcp.close(origin)
+      _ -> :ok
+    end
   end
 
   @doc false
-  def pass_packet(listen_socket, write_socket, nilpacks \\ 0) do
-    case listen_socket |>
-      read_packet |>
-      write_packet(write_socket) do
-        :ok -> pass_packet(listen_socket, write_socket, 0)
-        :nil_packet when nilpacks <= 5 -> pass_packet(listen_socket, write_socket, nilpacks + 1)
-        :nil_packet when nilpacks > 5 -> {:error, :nodata}
+  def pass_packet(from, to, nils \\ 0) do
+    case pipe_packet(from, to) do
+        :ok -> pass_packet(from, to, 0)
+        :nil_packet when nils <= 2 -> pass_packet(from, to, nils + 1)
+        :nil_packet when nils > 2 -> {:error, :nodata}
         :sopih -> {:error, :node_died} # Shoot other Peer In the Head
+        _ -> {:error, :unknown}
       end
+  end
+
+  defp pipe_packet(from, to) do
+    from |>
+    read_packet |>
+    write_packet(to)
   end
 
   @doc """
@@ -53,7 +57,16 @@ defmodule ZigorProxy.Handler do
           read_bytes(socket, pack_len)
         _  -> nil
     end
+  end
 
+  @doc false
+  def write_packet(nil, _socket) do
+    :nil_packet
+  end
+
+  @doc false
+  def write_packet({:error, _reason}, _socket) do
+    :sopih # Shoot other Peer In the Head
   end
 
   @doc """
@@ -64,19 +77,14 @@ defmodule ZigorProxy.Handler do
     - packet: packet in form of binary to write to a TCP socket (should not include `pseudo` or `size`)
     - socket: a TCP socket to write the packet to
   """
-  def write_packet(packet, socket) when is_nil(packet) == false do
-    :ok = write_pseudo socket
-    :ok = write_int32(socket, byte_size(packet))
-    :ok = write_bytes(socket, packet)
-    :ok
-  end
+  def write_packet(packet, socket) do
+    write_pseudo(socket)
+    write_int32(socket, byte_size(packet))
 
-  def write_packet(nil, _socket) do
-    :nil_packet
-  end
-
-  def write_packet({:error, _reason}, _socket) do
-    :sopih # Shoot other Peer In the Head
+    case write_bytes(socket, packet) do
+      :ok -> :ok
+      _ -> :nil_packet
+    end
   end
 
   defp write_pseudo(socket) do
@@ -93,7 +101,7 @@ defmodule ZigorProxy.Handler do
     - port: the port of a remote TCP binding to connect to
   """
   def connect_to(addr, port) do
-    :gen_tcp.connect(addr, port, [:binary, packet: :raw, active: false, keepalive: true])
+    :gen_tcp.connect(addr, port, [:binary, packet: :raw, active: false])
   end
 
   # First strike to read zigor pseudo, if match failed, we go old school!
