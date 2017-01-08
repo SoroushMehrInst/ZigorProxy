@@ -27,8 +27,8 @@ defmodule ZigorProxy do
     case bind do
       {:zigcrypt, ip, port, server_ip, server_port} ->
         do_get_bindings(tail, [worker(Task, [ZigorProxy.Server, :start_listen, [port, ip, server_port, server_ip]]) | final_binds])
-      {:sslcrypt, ip, port, server_ip, server_port} ->
-        do_get_bindings(tail, [worker(Task, [ZigorProxy.Server, :start_listen_ssl, [port, ip, server_port, server_ip]]) | final_binds])
+      {:sslcrypt, ip, port, server_ip, server_port, cert, key} ->
+        do_get_bindings(tail, [worker(Task, [ZigorProxy.Server, :start_listen_ssl, [port, ip, server_port, server_ip, cert, key]]) | final_binds])
       _ -> nil
     end
   end
