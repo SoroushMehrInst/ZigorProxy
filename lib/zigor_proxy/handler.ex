@@ -3,6 +3,7 @@ defmodule ZigorProxy.Handler do
   This module handles Zigor connections and whole ZigorSocket Operations.
   """
   import ZigorProxy.SocketUtils
+  alias ZigorProxy.ZigorSocket
 
   @doc """
   this function will handle a zigor client connecting to socket.
@@ -13,16 +14,16 @@ defmodule ZigorProxy.Handler do
     - server_port: real end of proxy port
     - server_ip: read end of proxy ip address
   """
-  def handle_client(client, server_port, server_ip) do
-    case connect_to(server_ip, server_port) do
-      {:ok, origin} ->
-        pid = :proc_lib.spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
-        :gen_tcp.controlling_process(origin, pid)
+  def handle_client(zg_client, server_port, server_ip) do
+    case connect_to(server_ip, server_port, zg_client.transport) do
+      {:ok, zg_origin} ->
+        pid = :proc_lib.spawn(ZigorProxy.Handler, :pass_packet, [zg_origin, zg_client])
+        :gen_tcp.controlling_process(zg_origin, pid)
 
-        pass_packet(client, origin)
+        pass_packet(zg_client, zg_origin)
 
-        :gen_tcp.close(client)
-        :gen_tcp.close(origin)
+        :gen_tcp.close(zg_client)
+        :gen_tcp.close(zg_origin)
       _ -> :ok
     end
   end
@@ -100,8 +101,11 @@ defmodule ZigorProxy.Handler do
     - addr: the IP address of a remote TCP binding to connect to
     - port: the port of a remote TCP binding to connect to
   """
-  def connect_to(addr, port) do
-    :gen_tcp.connect(addr, port, [:binary, packet: :raw, active: false])
+  def connect_to(addr, port, transport) do
+    case transport.connect(addr, port, [:binary, packet: :raw, active: false]) do
+      {:ok, socket} -> {:ok, %ZigorSocket{socket: socket, transport: transport}}
+      error -> error
+    end
   end
 
   # First strike to read zigor pseudo, if match failed, we go old school!

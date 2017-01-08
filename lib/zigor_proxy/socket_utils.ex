@@ -29,7 +29,7 @@ defmodule ZigorProxy.SocketUtils do
     - count: count of bytes to read from `socket`
   """
   def read_bytes(socket, count) do
-    case :gen_tcp.recv(socket, count, 1000) do
+    case socket.transport.recv(socket, count, 1000) do
       {:ok, data} -> data
       {:error, :closed} -> {:error, :closed}
       _ -> nil
@@ -43,7 +43,7 @@ defmodule ZigorProxy.SocketUtils do
     - socket: a TCP socket to read data from
   """
   def read_byte(socket) do
-    case :gen_tcp.recv(socket, 1, 1000) do
+    case socket.transport.recv(socket, 1, 1000) do
       {:ok, << single >>} -> single
       {:error, :closed} -> {:error, :closed}
       _ -> nil
@@ -62,7 +62,7 @@ defmodule ZigorProxy.SocketUtils do
     - data: a binary formatted data to write to socket
   """
   def write_bytes(socket, data) do
-    :gen_tcp.send(socket, data)
+    socket.transport.send(socket, data)
   end
 
   @doc """
@@ -73,7 +73,7 @@ defmodule ZigorProxy.SocketUtils do
     - byte: a single byte to write to socket
   """
   def write_byte(socket, byte) do
-    :gen_tcp.send(socket, <<byte>>)
+    socket.transport.send(socket, <<byte>>)
   end
 
   @doc """
