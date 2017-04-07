@@ -10,7 +10,7 @@ defmodule ZigorProxy do
     import Supervisor.Spec, warn: false
 
     # Define workers and child supervisors to be supervised
-    children = get_bindings
+    children = get_bindings()
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
@@ -24,12 +24,15 @@ defmodule ZigorProxy do
 
   defp do_get_bindings([bind | tail], final_binds) do
     import Supervisor.Spec, warn: false
+    require Logger
     case bind do
       {:zigcrypt, ip, port, server_ip, server_port, id} ->
         do_get_bindings(tail, [worker(Task, [ZigorProxy.Server, :start_listen, [port, ip, server_port, server_ip]], id: id) | final_binds])
       {:sslcrypt, ip, port, server_ip, server_port, cert, key, id} ->
         do_get_bindings(tail, [worker(Task, [ZigorProxy.Server, :start_listen_ssl, [port, ip, server_port, server_ip, cert, key]], id: id) | final_binds])
-      _ -> nil
+      _ ->
+        Logger.error "Bad config! Ignoring: #{inspect bind}"
+        do_get_bindings(tail, final_binds)
     end
   end
 
