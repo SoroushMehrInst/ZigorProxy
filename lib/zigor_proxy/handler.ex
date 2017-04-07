@@ -2,8 +2,7 @@ defmodule ZigorProxy.Handler do
   @moduledoc """
   This module handles Zigor connections and whole ZigorSocket Operations.
   """
-  import ZigorProxy.SocketUtils
-  alias ZigorProxy.ZigorSocket
+  import ZigorProxy.ZigorSocket
 
   @doc """
   this function will handle a zigor client connecting to socket.
@@ -103,7 +102,7 @@ defmodule ZigorProxy.Handler do
   """
   def connect_to(addr, port, transport) do
     case transport.connect(addr, port, [:binary, packet: :raw, active: false]) do
-      {:ok, socket} -> {:ok, %ZigorSocket{socket: socket, transport: transport}}
+      {:ok, socket} -> {:ok, %ZigorProxy.ZigorSocket{socket: socket, transport: transport}}
       error -> error
     end
   end
