@@ -6,7 +6,7 @@ use Mix.Config
 # config :zigor_proxy, proxy_port: 9011
 
 # Binding structure: {:cryppto, Local_addr, local_port, remote_addr, remote_port}
-config :zigor_proxy, bindings: [{:zigcrypt, {94, 182, 187, 115}, 8080, '10.8.237.237', 80}]
+config :zigor_proxy, bindings: [{:zigcrypt, {94, 182, 187, 115}, 8080, '10.8.237.237', 80, :first}]
 
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
