@@ -25,10 +25,10 @@ defmodule ZigorProxy do
   defp do_get_bindings([bind | tail], final_binds) do
     import Supervisor.Spec, warn: false
     case bind do
-      {:zigcrypt, ip, port, server_ip, server_port} ->
-        do_get_bindings(tail, [worker(Task, [ZigorProxy.Server, :start_listen, [port, ip, server_port, server_ip]]) | final_binds])
-      {:sslcrypt, ip, port, server_ip, server_port} ->
-        do_get_bindings(tail, [worker(Task, [ZigorProxy.Server, :start_listen_ssl, [port, ip, server_port, server_ip]]) | final_binds])
+      {:zigcrypt, ip, port, server_ip, server_port, id} ->
+        do_get_bindings(tail, [worker(Task, [ZigorProxy.Server, :start_listen, [port, ip, server_port, server_ip]], id: id) | final_binds])
+      {:sslcrypt, ip, port, server_ip, server_port, id} ->
+        do_get_bindings(tail, [worker(Task, [ZigorProxy.Server, :start_listen_ssl, [port, ip, server_port, server_ip]], id: id) | final_binds])
       _ -> nil
     end
   end
