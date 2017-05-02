@@ -17,7 +17,7 @@ defmodule ZigorProxy.Handler do
     case connect_to(server_ip, server_port) do
       {:ok, origin} ->
         pid = :proc_lib.spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
-        :ok = :gen_tcp.controlling_process(origin, pid)
+        :gen_tcp.controlling_process(origin, pid)
 
         pass_packet(client, origin)
 
