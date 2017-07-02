@@ -47,17 +47,24 @@ defmodule ZigorProxy.Server do
   """
   def start_listen_ssl(port, ip, server_port, server_ip, cert, key) do
     Logger.info "Starting SSL listener on port #{port}"
-    :ssl.start
+    :ssl.start() # Start SSL module
     {:ok, socket} = :ssl.listen(port, [:binary, packet: :raw, certfile: cert, keyfile: key, ip: ip, active: false, reuseaddr: true])
     Logger.info "SSL listener successfully started on port #{port}"
 
     # The ssl acceptance of a socket in an anonymous function
     accept_func = fn(socket) ->
-      Logger.debug "Accept call"
-      {:ok, soc} = :ssl.transport_accept(socket)
-      :ok = :ssl.ssl_accept(soc)
-      Logger.debug "Socket accepted: #{inspect soc}"
-      {:ok, soc}
+      case :ssl.transport_accept(socket) do
+        {:ok, soc} ->
+          case :ssl.ssl_accept(soc) do
+            :ok ->
+              {:ok, soc}
+            _ ->
+              {:error, :ssl_accept_error}
+          end
+
+        _ ->
+          {:error, :ssl_error}
+      end
     end
 
     loop_acceptor(%ZigorSocket{socket: socket, transport: :ssl},
@@ -73,8 +80,7 @@ defmodule ZigorProxy.Server do
         pid = spawn(ZigorProxy.Handler, :handle_client, [zg_client, server_port, server_ip])
         zigor_socket.transport.controlling_process(client, pid)
         loop_acceptor(zigor_socket, server_port, server_ip, accept_func)
-      other ->
-        Logger.error "AcceptFunc Error: #{inspect other}"
+      _ ->
         loop_acceptor(zigor_socket, server_port, server_ip, accept_func)
     end
   end
