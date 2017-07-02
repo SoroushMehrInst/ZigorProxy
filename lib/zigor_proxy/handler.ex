@@ -2,7 +2,8 @@ defmodule ZigorProxy.Handler do
   @moduledoc """
   This module handles Zigor connections and whole ZigorSocket Operations.
   """
-  import ZigorProxy.SocketUtils
+  import ZigorProxy.ZigorSocket
+  require Logger
 
   @doc """
   this function will handle a zigor client connecting to socket.
@@ -13,25 +14,33 @@ defmodule ZigorProxy.Handler do
     - server_port: real end of proxy port
     - server_ip: read end of proxy ip address
   """
-  def handle_client(client, server_port, server_ip) do
-    case connect_to(server_ip, server_port) do
-      {:ok, origin} ->
-        pid = :proc_lib.spawn(ZigorProxy.Handler, :pass_packet, [origin, client])
-        :gen_tcp.controlling_process(origin, pid)
+  def handle_client(zg_client, server_port, server_ip) do
+    Logger.debug "Client recieved!"
+    case connect_to(server_ip, server_port, zg_client.transport) do
+      {:ok, zg_origin} ->
 
-        pass_packet(client, origin)
+        Logger.debug "Server proxy client connected!"
 
-        :gen_tcp.close(client)
-        :gen_tcp.close(origin)
-      _ -> :ok
+        pid = spawn(ZigorProxy.Handler, :pass_packet_loop, [zg_origin, zg_client])
+        :ok = zg_client.transport.controlling_process(zg_origin.socket, pid)
+
+        pipe_resp = pass_packet_loop(zg_client, zg_origin)
+
+        Logger.debug "Client disconnected!"
+
+        zg_client.transport.close(zg_client.socket)
+        zg_client.transport.close(zg_origin.socket)
+      _ ->
+        Logger.error "Server #{server_ip}:#{server_port} is not accessible!"
+        :server_diconn
     end
   end
 
   @doc false
-  def pass_packet(from, to, nils \\ 0) do
+  def pass_packet_loop(from, to, nils \\ 0) do
     case pipe_packet(from, to) do
-        :ok -> pass_packet(from, to, 0)
-        :nil_packet when nils <= 2 -> pass_packet(from, to, nils + 1)
+        :ok -> pass_packet_loop(from, to, 0)
+        :nil_packet when nils <= 2 -> pass_packet_loop(from, to, nils + 1)
         :nil_packet when nils > 2 -> {:error, :nodata}
         :sopih -> {:error, :node_died} # Shoot other Peer In the Head
         _ -> {:error, :unknown}
@@ -55,6 +64,8 @@ defmodule ZigorProxy.Handler do
         :ok ->
           pack_len = read_int32(socket)
           read_bytes(socket, pack_len)
+        :error ->
+          :error
         _  -> nil
     end
   end
@@ -67,6 +78,11 @@ defmodule ZigorProxy.Handler do
   @doc false
   def write_packet({:error, _reason}, _socket) do
     :sopih # Shoot other Peer In the Head
+  end
+
+  @doc false
+  def write_packet(:error, _socket) do
+    :sopih
   end
 
   @doc """
@@ -100,27 +116,49 @@ defmodule ZigorProxy.Handler do
     - addr: the IP address of a remote TCP binding to connect to
     - port: the port of a remote TCP binding to connect to
   """
-  def connect_to(addr, port) do
-    :gen_tcp.connect(addr, port, [:binary, packet: :raw, active: false])
+  def connect_to(addr, port, transport) do
+    extra_opts =
+      case transport do
+        :ssl ->
+          [{:versions, [:'tlsv1.2']}, {:mode, :binary}]
+        _ ->
+          []
+      end
+
+    case transport.connect(addr, port, [:binary, {:packet, :raw}, {:active, false} | extra_opts]) do
+      {:ok, socket} ->
+        {:ok, %ZigorProxy.ZigorSocket{socket: socket, transport: transport}}
+      error -> error
+    end
   end
 
   # First strike to read zigor pseudo, if match failed, we go old school!
   defp await_zigor_pseudo(socket) do
     case read_bytes(socket, 4) do
-      <<255, 255, 254, 255>> -> :ok
-      _ -> await_zigor_pseudo(socket, 0)
+      <<255, 255, 254, 255>> ->
+        :ok
+      nil ->
+        await_zigor_pseudo(socket)
+      {:error, reason} ->
+        :error
+      data ->
+        await_zigor_pseudo(socket, 0)
     end
   end
 
-  defp await_zigor_pseudo(socket, index) do
+  defp await_zigor_pseudo(socket, index, tries \\ 0) do
     case {index, read_byte(socket)} do
-      {0, 255} -> await_zigor_pseudo(socket, 1)
-      {1, 255} -> await_zigor_pseudo(socket, 2)
-      {2, 254} -> await_zigor_pseudo(socket, 3)
+      {0, 255} -> await_zigor_pseudo(socket, index + 1)
+      {1, 255} -> await_zigor_pseudo(socket, index + 1)
+      {2, 254} -> await_zigor_pseudo(socket, index + 1)
       {3, 255} -> :ok
       {_, {:error, _}} -> :error
       {_, nil} -> :error
-      _ -> await_zigor_pseudo(socket, 0)
+      _ when tries < 2048 ->
+          await_zigor_pseudo(socket, 0, tries + 1)
+      _ ->
+          Logger.error "tries overflow!"
+          :error
     end
   end
 end

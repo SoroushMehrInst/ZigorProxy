@@ -1,8 +1,21 @@
-defmodule ZigorProxy.SocketUtils do
-  import ZigorProxy.BitConverter
+defmodule ZigorProxy.ZigorSocket do
   @moduledoc """
-  This module helps with read and write from or to a Zigor socket.
+  This module is holder of ZigorSocket struct.
+  ZigorSocket holds a socket and its transport module. transport module should implement:
+    - connect/3
+    - recv/3
+    - send/2
+    - controlling_proccess/2
+
+  ``ZigorSocket`` is made to make read & write to different types of socket easier. e.g: ZigCrypt, SSL and...
   """
+
+  import ZigorProxy.BitConverter
+
+  @enforce_keys [:socket, :transport]
+  defstruct [:socket, :transport]
+
+  @read_timeout 7000
 
   ###
   # Socket Read Operations
@@ -15,24 +28,25 @@ defmodule ZigorProxy.SocketUtils do
     - socket: a TCP socket to read data from
   """
   def read_int32(socket) do
-    socket |>
-    read_bytes(4) |>
-    get_int32
+    socket
+    |> read_bytes(4)
+    |> get_int32
   end
 
   # TODO: Handle {:error, :closed} on socket read
   @doc """
-  reads \"count\" bytes from \"socket\" and returns it as binary
+  reads ``count`` bytes from ``socket`` and returns it as binary
 
   ## Parameters
     - socket: a TCP socket to read data from
     - count: count of bytes to read from `socket`
   """
   def read_bytes(socket, count) do
-    case :gen_tcp.recv(socket, count, 1000) do
+    case socket.transport.recv(socket.socket, count, @read_timeout) do
       {:ok, data} -> data
       {:error, :closed} -> {:error, :closed}
-      _ -> nil
+      other ->
+        nil
     end
   end
 
@@ -43,7 +57,7 @@ defmodule ZigorProxy.SocketUtils do
     - socket: a TCP socket to read data from
   """
   def read_byte(socket) do
-    case :gen_tcp.recv(socket, 1, 1000) do
+    case socket.transport.recv(socket.socket, 1, @read_timeout) do
       {:ok, << single >>} -> single
       {:error, :closed} -> {:error, :closed}
       _ -> nil
@@ -62,7 +76,7 @@ defmodule ZigorProxy.SocketUtils do
     - data: a binary formatted data to write to socket
   """
   def write_bytes(socket, data) do
-    :gen_tcp.send(socket, data)
+    socket.transport.send(socket.socket, data)
   end
 
   @doc """
@@ -73,7 +87,7 @@ defmodule ZigorProxy.SocketUtils do
     - byte: a single byte to write to socket
   """
   def write_byte(socket, byte) do
-    :gen_tcp.send(socket, <<byte>>)
+    socket.transport.send(socket.socket, <<byte>>)
   end
 
   @doc """

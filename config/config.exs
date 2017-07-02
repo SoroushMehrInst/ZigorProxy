@@ -6,7 +6,7 @@ use Mix.Config
 # config :zigor_proxy, proxy_port: 9011
 
 # Binding structure: {:cryppto, Local_addr, local_port, remote_addr, remote_port}
-config :zigor_proxy, bindings: [{:zigcrypt, {94, 182, 187, 115}, 8080, '10.8.237.237', 80, :first}]
+config :zigor_proxy, bindings: [{:sslcrypt, {192, 168, 100, 20}, 8081, '10.8.237.237', 80, '/home/alisina/mansrv.com.key', '/home/alisina/mansrv.com.pem'}]
 
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
@@ -24,7 +24,7 @@ config :zigor_proxy, bindings: [{:zigcrypt, {94, 182, 187, 115}, 8080, '10.8.237
 #
 # Or configure a 3rd-party app:
 #
-config :logger, level: :info, backends: []
+# config :logger, level: :info, backends: []
 #
 
 # It is also possible to import configuration files, relative to this
