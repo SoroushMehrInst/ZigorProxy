@@ -3,6 +3,7 @@ defmodule ZigorProxy.Handler do
   This module handles Zigor connections and whole ZigorSocket Operations.
   """
   import ZigorProxy.ZigorSocket
+  require Logger
 
   @doc """
   this function will handle a zigor client connecting to socket.
@@ -14,22 +15,31 @@ defmodule ZigorProxy.Handler do
     - server_ip: read end of proxy ip address
   """
   def handle_client(zg_client, server_port, server_ip) do
+    Logger.debug "Client recieved"
     case connect_to(server_ip, server_port, zg_client.transport) do
       {:ok, zg_origin} ->
-        pid = :proc_lib.spawn(ZigorProxy.Handler, :pass_packet, [zg_origin, zg_client])
-        :gen_tcp.controlling_process(zg_origin, pid)
 
-        pass_packet(zg_client, zg_origin)
+        Logger.debug "Client connected!"
 
-        :gen_tcp.close(zg_client)
-        :gen_tcp.close(zg_origin)
-      _ -> :ok
+        pid = spawn(ZigorProxy.Handler, :pass_packet, [zg_origin, zg_client])
+        zg_client.transport.controlling_process(zg_origin.socket, pid)
+
+        pipe_resp = pass_packet(zg_client, zg_origin)
+
+        Logger.debug "Client disconnected! #{inspect pipe_resp}"
+
+        zg_client.transport.close(zg_client.socket)
+        zg_client.transport.close(zg_origin.socket)
+      _ ->
+        Logger.error "Server #{server_ip}:#{server_port} is not accessible"
+        :server_diconn
     end
   end
 
   @doc false
   def pass_packet(from, to, nils \\ 0) do
-    case pipe_packet(from, to) do
+    pipe_resp = pipe_packet(from, to)
+    case pipe_resp do
         :ok -> pass_packet(from, to, 0)
         :nil_packet when nils <= 2 -> pass_packet(from, to, nils + 1)
         :nil_packet when nils > 2 -> {:error, :nodata}
@@ -101,7 +111,15 @@ defmodule ZigorProxy.Handler do
     - port: the port of a remote TCP binding to connect to
   """
   def connect_to(addr, port, transport) do
-    case transport.connect(addr, port, [:binary, packet: :raw, active: false]) do
+    extra_opts =
+      case transport do
+        :ssl ->
+          [{:versions, [:'tlsv1.2']}, {:mode, :binary}]
+        _ ->
+          []
+      end
+
+    case transport.connect(addr, port, [:binary, {:packet, :raw}, {:active, false} | extra_opts]) do
       {:ok, socket} -> {:ok, %ZigorProxy.ZigorSocket{socket: socket, transport: transport}}
       error -> error
     end
@@ -110,12 +128,17 @@ defmodule ZigorProxy.Handler do
   # First strike to read zigor pseudo, if match failed, we go old school!
   defp await_zigor_pseudo(socket) do
     case read_bytes(socket, 4) do
-      <<255, 255, 254, 255>> -> :ok
-      _ -> await_zigor_pseudo(socket, 0)
+      <<255, 255, 254, 255>> ->
+        :ok
+      nil ->
+        await_zigor_pseudo(socket)
+      data ->
+        Logger.debug "Zigor pseudo first strike failed with #{inspect data}"
+        await_zigor_pseudo(socket, 0)
     end
   end
 
-  defp await_zigor_pseudo(socket, index) do
+  defp await_zigor_pseudo(socket, index, tries \\ 0) do
     case {index, read_byte(socket)} do
       {0, 255} -> await_zigor_pseudo(socket, 1)
       {1, 255} -> await_zigor_pseudo(socket, 2)
@@ -123,7 +146,11 @@ defmodule ZigorProxy.Handler do
       {3, 255} -> :ok
       {_, {:error, _}} -> :error
       {_, nil} -> :error
-      _ -> await_zigor_pseudo(socket, 0)
+      _ ->
+        if tries > 1024 do
+
+        end
+        await_zigor_pseudo(socket, 0, tries + 1)
     end
   end
 end

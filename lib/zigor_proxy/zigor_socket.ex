@@ -15,6 +15,8 @@ defmodule ZigorProxy.ZigorSocket do
   @enforce_keys [:socket, :transport]
   defstruct [:socket, :transport]
 
+  @read_timeout 7000
+
   ###
   # Socket Read Operations
   ###
@@ -26,9 +28,9 @@ defmodule ZigorProxy.ZigorSocket do
     - socket: a TCP socket to read data from
   """
   def read_int32(socket) do
-    socket |>
-    read_bytes(4) |>
-    get_int32
+    socket
+    |> read_bytes(4)
+    |> get_int32
   end
 
   # TODO: Handle {:error, :closed} on socket read
@@ -40,10 +42,11 @@ defmodule ZigorProxy.ZigorSocket do
     - count: count of bytes to read from `socket`
   """
   def read_bytes(socket, count) do
-    case socket.transport.recv(socket, count, 1000) do
+    case socket.transport.recv(socket.socket, count, @read_timeout) do
       {:ok, data} -> data
       {:error, :closed} -> {:error, :closed}
-      _ -> nil
+      other ->
+        nil
     end
   end
 
@@ -54,7 +57,7 @@ defmodule ZigorProxy.ZigorSocket do
     - socket: a TCP socket to read data from
   """
   def read_byte(socket) do
-    case socket.transport.recv(socket, 1, 1000) do
+    case socket.transport.recv(socket.socket, 1, @read_timeout) do
       {:ok, << single >>} -> single
       {:error, :closed} -> {:error, :closed}
       _ -> nil
@@ -73,7 +76,7 @@ defmodule ZigorProxy.ZigorSocket do
     - data: a binary formatted data to write to socket
   """
   def write_bytes(socket, data) do
-    socket.transport.send(socket, data)
+    socket.transport.send(socket.socket, data)
   end
 
   @doc """
@@ -84,7 +87,7 @@ defmodule ZigorProxy.ZigorSocket do
     - byte: a single byte to write to socket
   """
   def write_byte(socket, byte) do
-    socket.transport.send(socket, <<byte>>)
+    socket.transport.send(socket.socket, <<byte>>)
   end
 
   @doc """

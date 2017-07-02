@@ -48,13 +48,16 @@ defmodule ZigorProxy.Server do
   def start_listen_ssl(port, ip, server_port, server_ip, cert, key) do
     Logger.info "Starting SSL listener on port #{port}"
     :ssl.start
-    {:ok, socket} = :ssl.listen(port, [:binary, certfile: cert, keyfile: key, packet: :raw, ip: ip, active: false, reuseaddr: true])
+    {:ok, socket} = :ssl.listen(port, [:binary, packet: :raw, certfile: cert, keyfile: key, ip: ip, active: false, reuseaddr: true])
     Logger.info "SSL listener successfully started on port #{port}"
 
     # The ssl acceptance of a socket in an anonymous function
     accept_func = fn(socket) ->
-      soc = :ssl.transport_accept(socket)
-      :ssl.ssl_accept(soc)
+      Logger.debug "Accept call"
+      {:ok, soc} = :ssl.transport_accept(socket)
+      :ok = :ssl.ssl_accept(soc)
+      Logger.debug "Socket accepted: #{inspect soc}"
+      {:ok, soc}
     end
 
     loop_acceptor(%ZigorSocket{socket: socket, transport: :ssl},
@@ -63,15 +66,16 @@ defmodule ZigorProxy.Server do
      accept_func)
   end
 
-  #TODO: Supervise server socket for reconnecting without client notice
   defp loop_acceptor(zigor_socket, server_port, server_ip, accept_func) do
     case accept_func.(zigor_socket.socket) do
       {:ok, client} ->
         zg_client = %ZigorSocket{socket: client, transport: zigor_socket.transport}
-        pid = :proc_lib.spawn(ZigorProxy.Handler, :handle_client, [zg_client, server_port, server_ip])
+        pid = spawn(ZigorProxy.Handler, :handle_client, [zg_client, server_port, server_ip])
         zigor_socket.transport.controlling_process(client, pid)
         loop_acceptor(zigor_socket, server_port, server_ip, accept_func)
-      _ -> loop_acceptor(zigor_socket, server_port, server_ip, accept_func)
+      other ->
+        Logger.error "AcceptFunc Error: #{inspect other}"
+        loop_acceptor(zigor_socket, server_port, server_ip, accept_func)
     end
   end
 end
