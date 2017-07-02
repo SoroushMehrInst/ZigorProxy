@@ -20,7 +20,7 @@ defmodule ZigorProxy.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger],
+    [applications: [:logger, :ssl],
      mod: {ZigorProxy, []}]
   end
 
@@ -36,7 +36,7 @@ defmodule ZigorProxy.Mixfile do
   defp deps do
     [
       {:ex_doc, "~> 0.14.4", only: :dev},
-      {:exrm, ">= 0.0.0"}
+      {:distillery, "~> 1.4"}
     ]
   end
 end
