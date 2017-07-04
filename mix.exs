@@ -3,7 +3,7 @@ defmodule ZigorProxy.Mixfile do
 
   def project do
     [app: :zigor_proxy,
-     version: "0.2.1",
+     version: "0.2.2",
      elixir: "~> 1.3",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
