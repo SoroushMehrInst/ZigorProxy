@@ -5,6 +5,8 @@ defmodule ZigorProxy.Server do
   require Logger
   alias ZigorProxy.ZigorSocket
 
+  @accept_timeout 1000
+
   @doc """
   Starts listening for sockets on a specified port over TCP.
   This call is never ending!
@@ -23,7 +25,7 @@ defmodule ZigorProxy.Server do
     Logger.info "ZigCrypt listener successfully started on port #{port}"
 
     # Normal TCP socket acceptance in an anonymous function
-    accept_func = fn(socket) -> :gen_tcp.accept(socket) end
+    accept_func = fn(socket) -> :gen_tcp.accept(socket, @accept_timeout) end
 
     loop_acceptor(%ZigorSocket{socket: socket, transport: :gen_tcp},
      server_port,
@@ -53,9 +55,9 @@ defmodule ZigorProxy.Server do
 
     # The ssl acceptance of a socket in an anonymous function
     accept_func = fn(socket) ->
-      case :ssl.transport_accept(socket) do
+      case :ssl.transport_accept(socket, @accept_timeout) do
         {:ok, soc} ->
-          case :ssl.ssl_accept(soc) do
+          case :ssl.ssl_accept(soc, @accept_timeout) do
             :ok ->
               {:ok, soc}
             _ ->
