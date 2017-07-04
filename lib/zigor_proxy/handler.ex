@@ -138,7 +138,7 @@ defmodule ZigorProxy.Handler do
       <<255, 255, 254, 255>> ->
         :ok
       nil when tries < 4 ->
-        await_zigor_pseudo(socket)
+        await_zigor_pseudo(socket, tries + 1)
       nil when tries >= 4 ->
         :error
       {:error, reason} ->
