@@ -133,29 +133,31 @@ defmodule ZigorProxy.Handler do
   end
 
   # First strike to read zigor pseudo, if match failed, we go old school!
-  defp await_zigor_pseudo(socket) do
+  defp await_zigor_pseudo(socket, tries \\ 0) do
     case read_bytes(socket, 4) do
       <<255, 255, 254, 255>> ->
         :ok
-      nil ->
+      nil when tries < 4 ->
         await_zigor_pseudo(socket)
+      nil when tries >= 4 ->
+        :error
       {:error, reason} ->
         :error
       data ->
-        await_zigor_pseudo(socket, 0)
+        await_zigor_pseudo_byte(socket, 0)
     end
   end
 
-  defp await_zigor_pseudo(socket, index, tries \\ 0) do
+  defp await_zigor_pseudo_byte(socket, index, tries \\ 0) do
     case {index, read_byte(socket)} do
-      {0, 255} -> await_zigor_pseudo(socket, index + 1)
-      {1, 255} -> await_zigor_pseudo(socket, index + 1)
-      {2, 254} -> await_zigor_pseudo(socket, index + 1)
+      {0, 255} -> await_zigor_pseudo_byte(socket, index + 1)
+      {1, 255} -> await_zigor_pseudo_byte(socket, index + 1)
+      {2, 254} -> await_zigor_pseudo_byte(socket, index + 1)
       {3, 255} -> :ok
       {_, {:error, _}} -> :error
       {_, nil} -> :error
       _ when tries < 2048 ->
-          await_zigor_pseudo(socket, 0, tries + 1)
+          await_zigor_pseudo_byte(socket, 0, tries + 1)
       _ ->
           Logger.error "tries overflow!"
           :error
